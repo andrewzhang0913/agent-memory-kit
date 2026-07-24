@@ -23,6 +23,7 @@ dependencies = []
 [project.optional-dependencies]
 # Reference adapter that talks to an external Hermes + LanceDB vector store.
 hermes = []
+sqlite-vec = ["sqlite-vec>=0.1.0"]
 # Development / test tooling.
 dev = ["pytest>=7"]
 
