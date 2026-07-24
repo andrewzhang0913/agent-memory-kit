@@ -64,3 +64,22 @@ forgetting is deliberately out of scope for this kit.
 
 All paths route through `MemoryConfig`. Relocating the entire store is one env
 var (`AGENT_MEMORY_HOME`) or one constructor argument — never a code edit.
+
+## 9. Continuity must survive interruptions and hand-offs
+
+The other recurring pain was not silence but **discontinuity**: a process dies
+mid-task and the thread is lost; a second agent picks up the work and the
+context doesn't carry over; collaborating agents re-explain the same background
+to each other. The kit treats continuity as a first-class property, not an
+afterthought:
+
+- The journal is **append-only and flushed per action**, so work already done
+  survives a kill. `find_open_session_ids` surfaces a session that was never
+  closed, so the next run *resumes* the thread instead of starting blind
+  (`examples/crash_recovery.py`).
+- Shared context lives in the `global` scope: **written once, recalled by any
+  agent** — no re-briefing on hand-off — while a write-time guardrail keeps one
+  agent from corrupting another's private memory (`examples/multi_agent.py`).
+
+Continuity and honesty are the same commitment seen from two sides: never lose
+what happened, and never misrepresent who did it or when.

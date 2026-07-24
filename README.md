@@ -10,8 +10,25 @@ dependencies, runs offline.
 > where a memory system silently uses empty, stale, or mis-scoped data without
 > anyone noticing.
 
-It distills patterns proven in a long-running multi-agent system into a small,
-reusable library:
+## Why this exists
+
+This kit didn't start as a memory "feature set." It grew out of four concrete
+pains from running agents for real, day after day:
+
+| The pain | What the kit does about it |
+|----------|----------------------------|
+| **The process dies mid-task** (OOM, ctrl-C, deploy restart) and the work-in-progress is lost | Append-only journal — every action is flushed to disk *as it happens*, so nothing already done is lost when the process is killed |
+| **A task is interrupted** and the next run starts blind | `find_open_session_ids` surfaces the session that was never closed, so the agent resumes the thread instead of losing it |
+| **A second agent picks up the task** and the memory doesn't carry over | Canonical identity + `agent:<id>` scopes give every trace a stable owner, so who-did-what stays legible across agents and runs |
+| **Agents collaborate** and you keep re-explaining the same background | A shared `global` scope: write the context once, every agent recalls it — with a write-time guardrail so they can't corrupt each other's private memory |
+
+Each of these is a bug we hit, not a feature we imagined. See it run:
+[`examples/crash_recovery.py`](examples/crash_recovery.py) and
+[`examples/multi_agent.py`](examples/multi_agent.py).
+
+## What's inside
+
+It distills these patterns into a small, reusable library:
 
 - **Resilient tiered LLM client** — an ordered fallback ladder (upstream →
   OpenRouter → local) with per-tier timeout, retry, and *validation as the pass
@@ -46,6 +63,13 @@ python examples/quickstart.py
 Records a session → recalls it (lexical backend) → checks freshness → distills
 lessons via the LLM ladder (degrades gracefully if no LLM is reachable). Runs
 entirely on plain files in a temp dir.
+
+Two more runnable examples map directly to the pains above:
+
+```bash
+python examples/crash_recovery.py   # interrupt a session, resume it on restart
+python examples/multi_agent.py      # shared context across agents + scope guardrail
+```
 
 ```python
 from agent_memory import Journal, Recall, MemoryConfig
