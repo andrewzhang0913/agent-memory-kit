@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Local memory data (never commit a real memory store)
+*.jsonl
+/data/
+/.memory/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Internal planning docs — not shipped to the public repo
+/docs/superpowers/

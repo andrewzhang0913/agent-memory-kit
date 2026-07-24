@@ -1,0 +1,98 @@
+# agent-memory-kit
+
+[![CI](https://github.com/<OWNER>/agent-memory-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/<OWNER>/agent-memory-kit/actions/workflows/ci.yml)
+
+A local-first, layered memory kit for AI agents. Plain files, zero required
+dependencies, runs offline.
+
+> **No memory, no intelligence — and stale or wrong memory is more dangerous
+> than no memory.** This kit is built around *closing the half-open loops*
+> where a memory system silently uses empty, stale, or mis-scoped data without
+> anyone noticing.
+
+It distills patterns proven in a long-running multi-agent system into a small,
+reusable library:
+
+- **Resilient tiered LLM client** — an ordered fallback ladder (upstream →
+  OpenRouter → local) with per-tier timeout, retry, and *validation as the pass
+  condition* (empty "thinking-model" output is rejected and falls through).
+  Failure is explicit (`LLMError`), never a silent empty string.
+- **Multi-agent identity & scope model** — canonical IDs + alias normalization,
+  `global` vs `agent:<id>` memory scopes, a write-time scope guardrail, and an
+  honest authored-trace (identity that can't be resolved is marked, not faked).
+- **Append-only black-box journal** — every action recorded as one JSON line
+  stamped with actor/scope/task-owner; single-active-session policy.
+- **Freshness sentinel** — declare each memory product's expected refresh
+  cadence; the sentinel flags `FRESH` / `STALE` / `MISSING` so a job that
+  silently stops refreshing is caught automatically.
+- **Pluggable recall** — a `RecallBackend` protocol with a zero-dependency
+  lexical default and a reference Hermes adapter for an external vector store.
+
+## Install
+
+```bash
+pip install -e .          # core (stdlib-only)
+pip install -e ".[dev]"   # + pytest
+```
+
+Requires Python ≥ 3.10. The core has **no runtime dependencies**.
+
+## Quickstart
+
+```bash
+python examples/quickstart.py
+```
+
+Records a session → recalls it (lexical backend) → checks freshness → distills
+lessons via the LLM ladder (degrades gracefully if no LLM is reachable). Runs
+entirely on plain files in a temp dir.
+
+```python
+from agent_memory import Journal, Recall, MemoryConfig
+
+config = MemoryConfig(home="~/.agent-memory")
+config.ensure_dirs()
+
+journal = Journal(config=config)
+ov = {"agent_id": "researcher", "memory_scope": "global"}
+sid = journal.start_session("investigate deploy timeout", identity_overrides=ov)
+journal.log_action("raised the bridge timeout from 8s to 150s", sid=sid, identity_overrides=ov)
+journal.end_session(sid, identity_overrides=ov)
+
+hits = Recall(config=config).search("why did the job stop", limit=5)
+for h in hits:
+    print(h.score, h.text)
+```
+
+## Architecture at a glance
+
+A layered model where data flows upward from raw events to distilled knowledge:
+
+| Layer | What | Module |
+|-------|------|--------|
+| L1 | Append-only operation journal (black box) | `journal.py` |
+| L2 | Episodic summaries (application-layer) | *example only* |
+| L3 | Semantic facts + recall (vector/lexical) + entity index | `recall.py`, `entity_index.py`, `distiller.py` |
+| L4 | Lifecycle (merge/forget) — **manual queue, never auto-mutate** | *documented* |
+
+Cross-cutting: the resilient LLM client (`llm.py`), the identity/scope model
+(`identity.py`), and the freshness sentinel (`freshness.py`).
+
+See [`docs/architecture.md`](docs/architecture.md),
+[`docs/identity-model.md`](docs/identity-model.md),
+[`docs/design-principles.md`](docs/design-principles.md), and
+[`docs/recall-backends.md`](docs/recall-backends.md).
+
+## Scope of this library
+
+This kit is the **reusable core** extracted from a larger personal system. The
+application layer of that system (Obsidian-vault curation, news/weather morning
+digests, a Hermes gateway integration) is intentionally **not** shipped —
+those are deployment-specific. What's here is the general machinery, and the
+Hermes/LanceDB recall path ships only as a *reference adapter* showing the
+backend contract. A proper embedded vector backend (e.g. sqlite-vec) is a
+welcome community contribution — see [`docs/recall-backends.md`](docs/recall-backends.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).

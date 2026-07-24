@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "defaultAgentId": "researcher",
+  "aliasToCanonical": {
+    "researcher": "researcher",
+    "res": "researcher",
+    "writer": "writer",
+    "coder": "coder"
+  },
+  "agents": {
+    "researcher": {
+      "displayName": "Research Agent",
+      "aliases": ["res"],
+      "role": "gathers and verifies information",
+      "kind": "cli-worker",
+      "defaultSource": "research-cli",
+      "defaultMemoryScope": "agent:researcher",
+      "sharedMemoryScopes": ["global"],
+      "allowedMemoryScopes": ["agent:researcher", "global"]
+    },
+    "writer": {
+      "displayName": "Writer Agent",
+      "role": "drafts and edits prose",
+      "kind": "cli-worker",
+      "defaultSource": "writer-cli",
+      "defaultMemoryScope": "agent:writer",
+      "sharedMemoryScopes": ["global"],
+      "allowedMemoryScopes": ["agent:writer", "global"]
+    },
+    "coder": {
+      "displayName": "Coder Agent",
+      "role": "implements and tests code",
+      "kind": "cli-worker",
+      "defaultSource": "coder-cli",
+      "defaultMemoryScope": "agent:coder",
+      "sharedMemoryScopes": ["global"],
+      "allowedMemoryScopes": ["agent:coder", "global"]
+    }
+  }
+}

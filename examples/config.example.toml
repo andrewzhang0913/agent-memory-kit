@@ -1,0 +1,29 @@
+# Example environment configuration for agent-memory-kit.
+# Copy the values you need into your shell environment (export VAR=value) or a
+# process manager. Nothing here is required — the kit runs on plain files with
+# zero configuration; these only customize locations and LLM endpoints.
+
+# --- Storage ---
+# Where the memory store lives. Default: ./.agent-memory under the cwd.
+AGENT_MEMORY_HOME = "~/.agent-memory"
+# Override individual paths if you want them elsewhere:
+# AGENT_MEMORY_JOURNAL = "~/.agent-memory/journal/operation_journal.jsonl"
+# AGENT_MEMORY_IDENTITY_REGISTRY = "~/.agent-memory/identity_registry.json"
+
+# --- Identity (per-process; usually set per agent invocation) ---
+# AGENT_MEMORY_AGENT_ID = "researcher"
+# AGENT_MEMORY_MEMORY_SCOPE = "agent:researcher"
+# AGENT_MEMORY_SHARED_SCOPES = "global"
+
+# --- LLM tiers (all optional; the ladder drops tiers that lack credentials) ---
+# Primary upstream: any OpenAI-compatible endpoint.
+# AGENT_MEMORY_LLM_BASE_URL = "https://api.example.com/v1"
+# AGENT_MEMORY_LLM_MODEL = "your-model"
+# AGENT_MEMORY_LLM_API_KEY = "sk-..."
+
+# Middle tier: OpenRouter (free models available).
+# OPENROUTER_API_KEY = "sk-or-..."
+
+# Local safety net: an OpenAI-compatible local server (e.g. Hermes or Ollama).
+# AGENT_MEMORY_LOCAL_LLM_BASE_URL = "http://127.0.0.1:11434/v1"
+# AGENT_MEMORY_LOCAL_LLM_MODEL = "llama3.2"
