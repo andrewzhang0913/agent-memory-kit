@@ -1,6 +1,6 @@
 # agent-memory-kit
 
-[![CI](https://github.com/<OWNER>/agent-memory-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/<OWNER>/agent-memory-kit/actions/workflows/ci.yml)
+[![CI](https://github.com/andrewzhang0913/agent-memory-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewzhang0913/agent-memory-kit/actions/workflows/ci.yml)
 
 A local-first, layered memory kit for AI agents. Plain files, zero required
 dependencies, runs offline.
