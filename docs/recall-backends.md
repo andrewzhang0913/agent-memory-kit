@@ -49,6 +49,17 @@ rich recall.
 JSON contract: the script reads `{"query", "scope", "limit"}` and prints a JSON
 array of `{"text", "score", "scope", "source", "timestamp"}`.
 
+## Built-in: `SqliteVecBackend`
+
+Implements a `RecallBackend` backed by [sqlite-vec](https://github.com/asg017/sqlite-vec), adding real semantic search while keeping the kit's zero-external-service property.
+
+To use it, you must install the optional `sqlite-vec` extra:
+```bash
+pip install -e ".[sqlite-vec]"
+```
+
+It requires you to supply an `embed_fn` callable that turns a string into a list of floats. If the embedding step fails or is unavailable, `SqliteVecBackend` degrades gracefully by returning empty results and setting `degraded=True`, allowing a fallback chain (like `LexicalBackend`) to take over.
+
 ## Fallback chains
 
 `Recall` accepts a primary backend plus fallbacks, mirroring the LLM ladder: try
@@ -56,7 +67,11 @@ the rich backend, fall back to a simpler one rather than returning nothing.
 
 ```python
 from agent_memory import Recall, LexicalBackend
-recall = Recall(primary=my_vector_backend, fallbacks=[LexicalBackend()])
+from agent_memory.backends.sqlite_vec import SqliteVecBackend
+
+# Assuming you have an embed_fn(text: str) -> list[float]
+sqlite_backend = SqliteVecBackend(embed_fn=my_embed_fn)
+recall = Recall(primary=sqlite_backend, fallbacks=[LexicalBackend()])
 hits = recall.search("...")
 print(recall.last_backend, recall.degraded)
 ```
