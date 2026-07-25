@@ -47,9 +47,31 @@ class SqliteVecBackend:
             return self._db
 
         db = sqlite3.connect(self.db_path)
-        db.enable_load_extension(True)
-        self._sqlite_vec.load(db)
-        db.enable_load_extension(False)
+        load_extension = getattr(db, "load_extension", None)
+        if not callable(load_extension):
+            db.close()
+            self.degraded = True
+            raise RuntimeError(
+                "sqlite-vec is unavailable because this Python sqlite3 build "
+                "does not support loadable extensions"
+            )
+
+        enable_load_extension = getattr(db, "enable_load_extension", None)
+        try:
+            if callable(enable_load_extension):
+                enable_load_extension(True)
+            self._sqlite_vec.load(db)
+        except (AttributeError, OSError, sqlite3.Error) as exc:
+            db.close()
+            self.degraded = True
+            raise RuntimeError(f"failed to load the sqlite-vec extension: {exc}") from exc
+        finally:
+            if callable(enable_load_extension):
+                try:
+                    enable_load_extension(False)
+                except sqlite3.Error:
+                    # The connection may already be closed after a load failure.
+                    pass
         self._db = db
         return db
 
@@ -95,7 +117,14 @@ class SqliteVecBackend:
             self.degraded = True
             return
 
-        self._init_schema(len(embedding))
+        try:
+            self._init_schema(len(embedding))
+        except RuntimeError:
+            # A Python build without SQLite extension loading cannot use
+            # sqlite-vec. Stay available as an empty, degraded backend so a
+            # Recall fallback (for example LexicalBackend) can take over.
+            self.degraded = True
+            return
         db = self._get_db()
         
         cursor = db.cursor()

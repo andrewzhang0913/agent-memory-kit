@@ -60,6 +60,11 @@ pip install -e ".[sqlite-vec]"
 
 It requires you to supply an `embed_fn` callable that turns a string into a list of floats. If the embedding step fails or is unavailable, `SqliteVecBackend` degrades gracefully by returning empty results and setting `degraded=True`, allowing a fallback chain (like `LexicalBackend`) to take over.
 
+`sqlite-vec` also requires a Python `sqlite3` build with loadable-extension
+support. Some platform-provided Python builds disable this capability. In that
+case the backend marks itself as degraded and returns no results, allowing the
+same fallback chain to continue without crashing the caller.
+
 ## Fallback chains
 
 `Recall` accepts a primary backend plus fallbacks, mirroring the LLM ladder: try
