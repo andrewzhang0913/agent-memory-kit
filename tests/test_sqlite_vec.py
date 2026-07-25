@@ -1,12 +1,29 @@
 """Tests for sqlite-vec backend."""
+import sqlite3
+
 import pytest
 
 from agent_memory.backends.base import Record
+from agent_memory.recall import Recall
 
 # Skip entirely if sqlite-vec is not available
 pytest.importorskip("sqlite_vec")
 
 from agent_memory.backends.sqlite_vec import SqliteVecBackend
+
+
+def _sqlite_supports_loadable_extensions() -> bool:
+    db = sqlite3.connect(":memory:")
+    try:
+        return callable(getattr(db, "load_extension", None))
+    finally:
+        db.close()
+
+
+requires_loadable_extensions = pytest.mark.skipif(
+    not _sqlite_supports_loadable_extensions(),
+    reason="this Python sqlite3 build does not support loadable extensions",
+)
 
 
 def dummy_embed(text: str) -> list[float]:
@@ -18,6 +35,7 @@ def dummy_embed(text: str) -> list[float]:
     return [0.0, 0.0, 1.0]
 
 
+@requires_loadable_extensions
 def test_sqlite_vec_search_ranks_relevant():
     backend = SqliteVecBackend(embed_fn=dummy_embed)
     backend.add(Record(text="morning job timeout", scope="global"))
@@ -32,6 +50,7 @@ def test_sqlite_vec_search_ranks_relevant():
     assert "coffee" in hits2[0].text.lower()
 
 
+@requires_loadable_extensions
 def test_sqlite_vec_scope_filter():
     backend = SqliteVecBackend(embed_fn=dummy_embed)
     backend.add(Record(text="morning job timeout", scope="global"))
@@ -46,6 +65,7 @@ def test_sqlite_vec_scope_filter():
     assert hits_foo[0].scope == "agent:foo"
 
 
+@requires_loadable_extensions
 def test_sqlite_vec_limit_respected():
     backend = SqliteVecBackend(embed_fn=dummy_embed)
     backend.add(Record(text="timeout 1", scope="global"))
@@ -79,3 +99,30 @@ def test_sqlite_vec_degraded_when_no_embed_fn():
     hits = backend.search("timeout")
     assert hits == []
     assert backend.degraded is True
+
+
+def test_sqlite_vec_degraded_when_extension_loading_is_unavailable(monkeypatch):
+    class ConnectionWithoutExtensions:
+        def close(self):
+            pass
+
+    class FallbackBackend:
+        degraded = True
+
+        def search(self, query, scope=None, limit=5):
+            return [Record(text="fallback result", scope=scope or "global")]
+
+    monkeypatch.setattr(
+        "agent_memory.backends.sqlite_vec.sqlite3.connect",
+        lambda _path: ConnectionWithoutExtensions(),
+    )
+    backend = SqliteVecBackend(embed_fn=dummy_embed)
+
+    backend.add(Record(text="morning job timeout", scope="global"))
+
+    assert backend.degraded is True
+    assert backend.search("timeout") == []
+
+    recall = Recall(primary=backend, fallbacks=[FallbackBackend()])
+    assert recall.search("timeout")[0].text == "fallback result"
+    assert recall.last_backend == "FallbackBackend"

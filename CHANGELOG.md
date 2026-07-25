@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Degrade the optional sqlite-vec recall backend gracefully when Python's
+  SQLite build does not support loadable extensions.
+
 ## [0.1.0] - 2026-07-24
 
 ### Added
